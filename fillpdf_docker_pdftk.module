@@ -1,0 +1,53 @@
+<?php
+
+/**
+ * @file
+ * Contains fillpdf_docker_pdftk.module.
+ */
+
+use Drupal\Core\Routing\RouteMatchInterface;
+use Drupal\Core\Entity\EntityTypeInterface;
+/**
+ * Implements hook_help().
+ */
+function fillpdf_docker_pdftk_help($route_name, RouteMatchInterface $route_match) {
+  switch ($route_name) {
+    // Main module help for the fillpdf_docker_pdftk module.
+    case 'help.page.fillpdf_docker_pdftk':
+      $output = '';
+      $output .= '<h3>' . t('About') . '</h3>';
+      $output .= '<p>' . t('Extends the FillPDF module with an extra REST API / Dockerized version of PDFTK') . '</p>';
+      return $output;
+
+    default:
+  }
+}
+
+/**
+ * Implements hook_entity_type_alter().
+ *
+ * Review this page for insight: https://medium.com/@sumanthkumarc/overriding-the-default-handlers-for-any-entity-in-drupal-8-941d6972dd09
+ *
+ */
+function fillpdf_docker_pdftk_entity_type_alter(array &$entity_types) {
+
+  /** @var $entity_types \Drupal\Core\Entity\EntityTypeInterface[] */
+
+  $entity_types['fillpdf_form']->setFormClass('edit', 'Drupal\\fillpdf_docker_pdftk\\Form\\FillpdfDockerFormForm');
+}
+
+/**
+ * This is to change the class for the data field definition... but we don't have this yet.
+ *
+ * @param $fields
+ * @param \Drupal\Core\Entity\EntityTypeInterface $entity_type
+ */
+function fillpdf_docker_pdftk_entity_base_field_info_alter(&$fields, EntityTypeInterface $entity_type) {
+//  drupal_set_message('We did the entity_base_field_info hook');
+  $type = $entity_type->id();
+  // Alter the fillpdf_form field to use a custom class.
+  if ($type == 'fillpdf_form') {
+//    $fields['data']
+//      ->setClass('\\Drupal\\fillpdf_docker_pdftk\\Entity\\FillpdfDockerForm');
+  }
+}

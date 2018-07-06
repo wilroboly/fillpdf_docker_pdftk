@@ -1,0 +1,14 @@
+{
+  "name": "drupal/fillpdf_docker_pdftk",
+  "type": "drupal-module",
+  "description": "Extends the FillPDF module with an extra REST API / Dockerized version of PDFTK",
+  "keywords": ["Drupal"],
+  "license": "GPL-2.0+",
+  "homepage": "https://www.drupal.org/project/fillpdf_docker_pdftk",
+  "minimum-stability": "dev",
+  "support": {
+    "issues": "https://www.drupal.org/project/issues/fillpdf_docker_pdftk",
+    "source": "http://cgit.drupalcode.org/fillpdf_docker_pdftk"
+  },
+  "require": { }
+}

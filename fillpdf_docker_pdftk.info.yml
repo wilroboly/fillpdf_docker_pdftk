@@ -1,0 +1,11 @@
+name: 'FillPDF Docker PDFTK'
+type: module
+description: 'Extends the FillPDF module with an extra REST API / Dockerized version of PDFTK'
+core: 8.x
+package: 'Other'
+
+dependencies:
+  - fillpdf
+
+test_dependencies:
+  - webform:webform

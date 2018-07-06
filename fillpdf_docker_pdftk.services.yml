@@ -1,0 +1,5 @@
+services:
+    fillpdf_docker_pdftk.route_subscriber:
+      class: Drupal\fillpdf_docker_pdftk\Routing\FillPdfDockerRouteSubscriber
+      tags:
+        - { name: event_subscriber }
