@@ -1,14 +1,32 @@
 {
-  "name": "drupal/fillpdf_docker_pdftk",
-  "type": "drupal-module",
+  "name": "tribus/fillpdf_docker_pdftk",
   "description": "Extends the FillPDF module with an extra REST API / Dockerized version of PDFTK",
-  "keywords": ["Drupal"],
+  "type": "drupal-module",
   "license": "GPL-2.0+",
-  "homepage": "https://www.drupal.org/project/fillpdf_docker_pdftk",
   "minimum-stability": "dev",
+  "authors": [
+    {
+      "name": "William Roboly (wilco)",
+      "homepage": "https://www.drupal.org/u/wilco",
+      "role": "Maintainer"
+    }
+  ],
   "support": {
-    "issues": "https://www.drupal.org/project/issues/fillpdf_docker_pdftk",
-    "source": "http://cgit.drupalcode.org/fillpdf_docker_pdftk"
+    "issues": "https://gitlab.com/tribus.studio/fillpdf_docker_pdftk/issues",
+    "source": "https://gitlab.com/tribus.studio/fillpdf_docker_pdftk"
   },
-  "require": { }
+  "repositories": [
+    {
+      "type": "vcs",
+      "url": "git@gitlab.com:tribus.studio/fillpdf_docker_pdftk.git"
+    }
+  ],
+  "require": {
+    "drupal/fillpdf": "^4.5",
+    "drupal/webform": "^5.0"
+  },
+  "require-dev": {
+    "drupal/webform": "^5.0",
+    "drupal/token": "^1.0"
+  }
 }
