@@ -183,30 +183,33 @@ class DockerPDFTKFillPdfBackend implements FillPdfBackendPluginInterface {
 
     return $newArray;
   }
+
   /**
+   *
+   * Output PDF document. This function would usually also deal with image
+   * removing image metadata. But, I think its rather pointless for us.
+   *
    * @inheritdoc
    */
   public function populateWithFieldData(FillPdfFormInterface $pdf_form, array $field_mapping, array $context) {
     /** @var FileInterface $original_file */
     $original_file = File::load($pdf_form->file->target_id);
     $original_pdf = file_get_contents($original_file->getFileUri());
-//    $api_key = $this->config['fillpdf_service_api_key'];
 
+    // @TODO: This stuff is not needed for us, but should we come to this point,
+    //        we'll investigate it then
     // Anonymize image data from the fields array; we should not send the real
     // filename to FillPDF Service. We do this in the specific backend because
     // other plugin types may need the filename on the local system.
-    foreach ($field_mapping['fields'] as $field_name => &$field) {
-      if (!empty($field_mapping['images'][$field_name])) {
-        $field_path_info = pathinfo($field);
-        $field = '{image}' . md5($field_path_info['filename']) . '.' . $field_path_info['extension'];
-      }
-    }
-    unset($field);
+//    foreach ($field_mapping['fields'] as $field_name => &$field) {
+//      if (!empty($field_mapping['images'][$field_name])) {
+//        $field_path_info = pathinfo($field);
+//        $field = '{image}' . md5($field_path_info['filename']) . '.' . $field_path_info['extension'];
+//      }
+//    }
+//    unset($field);
 
-    //$result = $this->xmlRpcRequest('merge_pdf_v3', base64_encode($original_pdf), $field_mapping['fields'], $api_key, $context['flatten'], $field_mapping['images']);
-
-    $populated_pdf = base64_decode(TRUE);
-    return $populated_pdf;
+    return $original_pdf;
   }
 
 }
