@@ -17,6 +17,8 @@ class FillPdfDockerSettingsForm extends FillPdfSettingsForm {
     $form = parent::buildForm($form, $form_state);
 
     $config = $this->config('fillpdf.settings');
+    $docker_config = $this->config('fillpdf_docker_pdftk.settings');
+
     $fillpdf_service = $config->get('backend');
 
     $url = Url::fromUri('https://github.com/wilroboly/pdf-filler');
@@ -66,7 +68,7 @@ class FillPdfDockerSettingsForm extends FillPdfSettingsForm {
     $form['docker_pdftk']['fillpdf_rest_endpoint'] = array(
       '#type' => 'textfield',
       '#title' => t('Service endpoint'),
-      '#default_value' => $config->get('fillpdf_rest_endpoint', 'rest.endpoint.local/api/1.0/pdftk'),
+      '#default_value' => $docker_config->get('fillpdf_rest_endpoint', 'rest.endpoint.local/api/1.0/pdftk'),
       '#description' => t('The URI endpoint for the docker service. You should read the documentation for the PDF-filler Docker to ensure you have this working properly.'),
     );
     // @TODO: This was an option which we were entertaining.
@@ -80,7 +82,7 @@ class FillPdfDockerSettingsForm extends FillPdfSettingsForm {
       '#type' => 'radios',
       '#title' => t('Use HTTPS?'),
       '#description' => t('HTTPS is always preferrable, but likely the service is in an internal network, so this may not be as important.'),
-      '#default_value' => $config->get('fillpdf_rest_protocol', 'https'),
+      '#default_value' => $docker_config->get('fillpdf_rest_protocol', 'https'),
       '#options' => array(
         'https' => t('Use HTTPS'),
         'http' => t('Do not use HTTPS'),
@@ -108,10 +110,12 @@ class FillPdfDockerSettingsForm extends FillPdfSettingsForm {
     // Save form values.
     $this->config('fillpdf.settings')
       ->set('backend', $form_state->getValue('backend'))
-      ->set('fillpdf_rest_endpoint', $form_state->getValue('fillpdf_rest_endpoint'))
-      ->set('fillpdf_rest_protocol', $form_state->getValue('fillpdf_rest_protocol'))
-//      ->set('fillpdf_rest_api_key', $form_state->getValue('backend'))
       ->save();
+
+    $config =\Drupal::service('config.factory')->getEditable('fillpdf_docker_pdftk.settings');
+    $config->set('fillpdf_rest_endpoint', $form_state->getValue('fillpdf_rest_endpoint'));
+    $config->set('fillpdf_rest_protocol', $form_state->getValue('fillpdf_rest_protocol'));
+    $config->save();
 
     parent::submitForm($form, $form_state);
   }
