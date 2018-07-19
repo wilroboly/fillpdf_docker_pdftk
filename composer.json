@@ -1,7 +1,7 @@
 {
   "name": "tribus/fillpdf_docker_pdftk",
   "description": "Extends the FillPDF module with an extra REST API / Dockerized version of PDFTK",
-  "type": "drupal-module",
+  "type": "drupal-custom-module",
   "license": "GPL-2.0+",
   "minimum-stability": "dev",
   "authors": [
