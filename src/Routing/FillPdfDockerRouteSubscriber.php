@@ -23,19 +23,5 @@ class FillPdfDockerRouteSubscriber extends RouteSubscriberBase {
       $route->setDefault('_form', '\Drupal\fillpdf_docker_pdftk\Form\FillPdfDockerSettingsForm');
     }
   }
-
-  /**
-   * This ensures the Route Event comes after the FillPDF module routes. Otherwise,
-   * the module could land on events that do not exist.
-   * {@inheritdoc}
-   */
-//  public static function getSubscribedEvents() {
-//
-//    // Come after field_ui.
-//    $events[RoutingEvents::ALTER] = array(
-//      'onAlterRoutes',
-//      -110,
-//    );
-//    return $events;
-//  }
+  
 }
