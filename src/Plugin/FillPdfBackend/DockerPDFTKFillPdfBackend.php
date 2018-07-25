@@ -21,13 +21,16 @@ class DockerPDFTKFillPdfBackend implements FillPdfBackendPluginInterface {
   /** @var string $fillPdfServiceEndpoint */
   protected $fillPdfServiceEndpoint;
 
-  // @todo: Use PluginBase's $this->configuration after adding a FillPdfBackendBase class.
   /** @var array $config */
   protected $config;
 
+  /** @var array $config */
+  protected $config_factory;
+
   public function __construct(array $config) {
     $this->config = $config;
-    $this->fillPdfServiceEndpoint = "{$this->config['fillpdf_rest_protocol']}://{$this->config['fillpdf_rest_endpoint']}";
+    $this->config_factory =\Drupal::service('config.factory')->getEditable('fillpdf_docker_pdftk.settings');
+    $this->fillPdfServiceEndpoint = "{$this->config_factory->get('fillpdf_rest_protocol')}://{$this->config_factory->get('fillpdf_rest_endpoint')}";
   }
 
   /**
@@ -37,13 +40,13 @@ class DockerPDFTKFillPdfBackend implements FillPdfBackendPluginInterface {
     /** @var FileInterface $file */
     $file = File::load($fillpdf_form->file->target_id);
     $uri = $file->getFileUri();
-    $parsed_uri = parse_url($uri);
 
     if ($wrapper = \Drupal::service('stream_wrapper_manager')->getViaUri($uri)) {
       $file_url = $wrapper->getExternalUrl();
     } else {
       $file_url = '';
     }
+
     $pdf = array(
       'pdf' => $file_url
     );
@@ -67,9 +70,6 @@ class DockerPDFTKFillPdfBackend implements FillPdfBackendPluginInterface {
     // Build a simple map of dump_data_fields keys to our own array keys.
     $data_fields_map = array(
       'pdf_name'        =>  'name',
-      //        'type'            =>  'type',
-      //        'flags'           =>  'flags',
-      //        'justification'   =>  'justification'
     );
 
     foreach ($fields as $key => $values) {
@@ -135,13 +135,6 @@ class DockerPDFTKFillPdfBackend implements FillPdfBackendPluginInterface {
         $ret->data = $body;
       }
 
-//      if (empty($data)) {
-//        $ret->error = TRUE;
-//        drupal_set_message(t('The data returned is empty'), 'error');
-//      } else {
-//        $ret->data = $data;
-//      }
-
     }
     catch (RequestException $e) {
       $ret->error = TRUE;
@@ -196,20 +189,70 @@ class DockerPDFTKFillPdfBackend implements FillPdfBackendPluginInterface {
     $original_file = File::load($pdf_form->file->target_id);
     $original_pdf = file_get_contents($original_file->getFileUri());
 
-    // @TODO: This stuff is not needed for us, but should we come to this point,
-    //        we'll investigate it then
-    // Anonymize image data from the fields array; we should not send the real
-    // filename to FillPDF Service. We do this in the specific backend because
-    // other plugin types may need the filename on the local system.
-//    foreach ($field_mapping['fields'] as $field_name => &$field) {
-//      if (!empty($field_mapping['images'][$field_name])) {
-//        $field_path_info = pathinfo($field);
-//        $field = '{image}' . md5($field_path_info['filename']) . '.' . $field_path_info['extension'];
-//      }
-//    }
-//    unset($field);
-
     return $original_pdf;
   }
+
+  /**
+   *
+   * @TODO: This merge function needs to be updated to work with FILLPDF
+   *
+   * @param $pdf
+   * @param array $field_mappings
+   * @param array $options
+   *
+   * @return bool|null|string
+   */
+  public function merge($pdf, array $field_mappings, array $options) {
+    $flatten = $options['flatten'];
+
+    $api_fields = [];
+    foreach ($field_mappings as $key => $mapping) {
+      $api_field = NULL;
+
+      if ($mapping instanceof TextFieldMapping) {
+        $api_field = array(
+          'type' => 'text',
+          'data' => $mapping->getData(),
+        );
+      }
+      elseif ($mapping instanceof ImageFieldMapping) {
+        $api_field = array(
+          'type' => 'image',
+          'data' => base64_encode($mapping->getData()),
+        );
+
+        if ($extension = $mapping->getExtension()) {
+          $api_field['extension'] = $extension;
+        }
+      }
+
+      if ($api_field) {
+        $api_fields[$key] = $api_field;
+      }
+    }
+
+    $request = [
+      'pdf' => base64_encode($pdf),
+      'flatten' => $flatten,
+      'fields' => $api_fields,
+    ];
+
+    $json = \GuzzleHttp\json_encode($request);
+
+    try {
+      $response = $this->httpClient->post($this->configuration['local_service_endpoint'] . '/api/v1/merge', [
+        'body' => $json,
+        'headers' => ['Content-Type' => 'application/json'],
+      ]);
+
+      $decoded = \GuzzleHttp\json_decode((string) $response->getBody(), TRUE);
+      return base64_decode($decoded['pdf']);
+    }
+    catch (RequestException $e) {
+      watchdog_exception('fillpdf', $e);
+      return NULL;
+    }
+  }
+
 
 }

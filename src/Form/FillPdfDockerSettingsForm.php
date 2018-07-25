@@ -47,6 +47,21 @@ class FillPdfDockerSettingsForm extends FillPdfSettingsForm {
     );
     unset($form['pdftk_path']);
 
+    // local_service FillPDF app
+    $form['local_service'] = array(
+      '#type' => 'fieldset',
+      '#title' => t('FillPdf LocalServer'),
+      '#collapsible' => TRUE,
+      '#collapsed' => $fillpdf_service !== 'local_service',
+      '#states' => array(
+        'visible' => array(
+          ':input[name="backend"]' => array('value' => 'local_service'),
+        ),
+      ),
+    );
+    $form['local_service']['local_service_endpoint'] = $form['local_service_endpoint'];
+    unset($form['local_service_endpoint']);
+
     $form['fillpdf_service']['#states'] = array(
       'visible' => array(
         ':input[name="backend"]' => array('value' => 'fillpdf_service'),
