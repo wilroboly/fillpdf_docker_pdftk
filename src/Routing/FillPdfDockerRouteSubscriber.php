@@ -16,6 +16,9 @@ use Symfony\Component\Routing\RouteCollection;
 class FillPdfDockerRouteSubscriber extends RouteSubscriberBase {
 
   /**
+   * @NOTE: For whatever reason, you cannot play with entity or entity forms through
+   * this approach, use the .module hook_entity_type_alter() method instead.
+   *
    * {@inheritdoc}
    */
   protected function alterRoutes(RouteCollection $collection) {
@@ -23,5 +26,5 @@ class FillPdfDockerRouteSubscriber extends RouteSubscriberBase {
       $route->setDefault('_form', '\Drupal\fillpdf_docker_pdftk\Form\FillPdfDockerSettingsForm');
     }
   }
-  
+
 }

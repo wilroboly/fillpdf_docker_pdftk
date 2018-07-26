@@ -17,7 +17,11 @@ class LoadTest extends BrowserTestBase {
    *
    * @var array
    */
-  public static $modules = ['fillpdf_docker_pdftk'];
+  public static $modules = [
+    'fillpdf',
+    'fillpdf_docker_pdftk',
+    'webform'
+  ];
 
   /**
    * A user with permission to administer site configuration.

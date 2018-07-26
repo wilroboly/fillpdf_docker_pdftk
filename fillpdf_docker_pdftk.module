@@ -34,6 +34,8 @@ function fillpdf_docker_pdftk_entity_type_alter(array &$entity_types) {
   /** @var $entity_types \Drupal\Core\Entity\EntityTypeInterface[] */
 
   $entity_types['fillpdf_form']->setFormClass('edit', 'Drupal\\fillpdf_docker_pdftk\\Form\\FillpdfDockerFormForm');
+  $entity_types['fillpdf_form']->setFormClass('delete', 'Drupal\\fillpdf_docker_pdftk\\Form\\FillpdfDockerFormDeleteForm');
+
 }
 
 /**
@@ -51,3 +53,4 @@ function fillpdf_docker_pdftk_entity_base_field_info_alter(&$fields, EntityTypeI
 //      ->setClass('\\Drupal\\fillpdf_docker_pdftk\\Entity\\FillpdfDockerForm');
   }
 }
+
