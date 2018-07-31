@@ -54,3 +54,22 @@ function fillpdf_docker_pdftk_entity_base_field_info_alter(&$fields, EntityTypeI
   }
 }
 
+/******************************************************************************/
+// Theme hooks.
+/******************************************************************************/
+
+/**
+ * Implements hook_theme().
+ */
+function fillpdf_docker_pdftk_theme() {
+  $info = [
+    'webform_handler_fillpdf_action_summary' => [
+      'variables' => ['settings' => NULL, 'handler' => NULL],
+    ],
+    'webform_handler_email_attachment_summary' => [
+      'variables' => ['settings' => NULL, 'handler' => NULL],
+    ],
+  ];
+
+  return $info;
+}
