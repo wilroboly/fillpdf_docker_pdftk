@@ -23,14 +23,14 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
  *   id = "deletion_action",
  *   label = @Translation("Deletion Action"),
  *   category = @Translation("Action"),
- *   description = @Translation("Trigger a delete action on a submission."),
+ *   description = @Translation("Trigger a delete action on a submission (i.e: file deletion, full submission deletion, specific field obfuscation, etc.)"),
  *   cardinality = \Drupal\webform\Plugin\WebformHandlerInterface::CARDINALITY_UNLIMITED,
  *   results = \Drupal\webform\Plugin\WebformHandlerInterface::RESULTS_PROCESSED,
  *   submission = \Drupal\webform\Plugin\WebformHandlerInterface::SUBMISSION_OPTIONAL,
  *   tokens = TRUE,
  * )
  */
-class ActionWebformHandler extends WebformHandlerBase {
+class DeletionWebformHandler extends WebformHandlerBase {
 
   /**
    * The webform token manager.
@@ -130,29 +130,18 @@ class ActionWebformHandler extends WebformHandlerBase {
       '#type' => 'fieldset',
       '#title' => $this->t('Actions'),
     ];
-    $form['actions']['sticky'] = [
-      '#type' => 'select',
-      '#title' => $this->t('Change status'),
-      '#empty_option' => $this->t('- None -'),
-      '#options' => [
-        '1' => $this->t('Flag/Star'),
-        '0' => $this->t('Unflag/Unstar'),
-      ],
-      '#default_value' => ($this->configuration['sticky'] === NULL) ? '' : ($this->configuration['sticky'] ? '1' : '0'),
+    $form['actions']['notes'] = [
+      '#type' => 'webform_codemirror',
+      '#mode' => 'text',
+      '#title' => $this->t('Append the below text to notes (Plain text)'),
+      '#default_value' => $this->configuration['notes'],
     ];
-    $form['actions']['locked'] = [
-      '#type' => 'select',
-      '#title' => $this->t('Change lock'),
-      '#description' => $this->t('Webform submissions can only be unlocked programatically.'),
-      '#empty_option' => $this->t('- None -'),
-      '#options' => [
-        '' => '',
-        '1' => $this->t('Lock'),
-        '0' => $this->t('Unlock'),
-      ],
-      '#default_value' => ($this->configuration['locked'] === NULL) ? '' : ($this->configuration['locked'] ? '1' : '0'),
+    $form['actions']['data'] = [
+      '#type' => 'webform_codemirror',
+      '#mode' => 'yaml',
+      '#title' => $this->t('Update the below submission data. (YAML)'),
+      '#default_value' => $this->configuration['data'],
     ];
-
 
     $elements_rows = [];
     $elements = $this->getWebform()->getElementsInitializedFlattenedAndHasValue();
@@ -219,12 +208,6 @@ class ActionWebformHandler extends WebformHandlerBase {
     // Cleanup states.
     $this->configuration['states'] = array_values(array_filter($this->configuration['states']));
 
-    // Cleanup sticky.
-    $this->configuration['sticky'] = ($this->configuration['sticky'] === '') ? NULL : (bool) $this->configuration['sticky'];
-
-    // Cleanup locked.
-    $this->configuration['locked'] = ($this->configuration['locked'] === '') ? NULL : (bool) $this->configuration['locked'];
-
     // Cast debug.
     $this->configuration['debug'] = (bool) $this->configuration['debug'];
   }
@@ -250,15 +233,6 @@ class ActionWebformHandler extends WebformHandlerBase {
    *   A webform submission.
    */
   protected function executeAction(WebformSubmissionInterface $webform_submission) {
-    // Set sticky.
-    if ($this->configuration['sticky'] !== NULL) {
-      $webform_submission->setSticky($this->configuration['sticky']);
-    }
-
-    // Set locked.
-    if ($this->configuration['locked'] !== NULL) {
-      $webform_submission->setLocked($this->configuration['locked']);
-    }
 
     // Append notes.
     if ($this->configuration['notes']) {
@@ -274,15 +248,6 @@ class ActionWebformHandler extends WebformHandlerBase {
       foreach ($data as $key => $value) {
         $webform_submission->setElementData($key, $value);
       }
-    }
-
-    // Display message.
-    if ($this->configuration['message']) {
-      $message = WebformHtmlEditor::checkMarkup(
-        $this->tokenManager->replace($this->configuration['message'], $webform_submission)
-      );
-      $message_type = $this->configuration['message_type'];
-      $this->messenger()->addMessage(\Drupal::service('renderer')->renderPlain($message), $message_type);
     }
 
     // Resave the webform submission without trigger any hooks or handlers.
@@ -317,20 +282,6 @@ class ActionWebformHandler extends WebformHandlerBase {
       '#wrapper_attributes' => ['class' => ['container-inline'], 'style' => 'margin: 0'],
     ];
 
-    $build['sticky'] = [
-      '#type' => 'item',
-      '#title' => $this->t('Status'),
-      '#markup' => ($this->configuration['sticky'] === NULL) ? '' : ($this->configuration['sticky'] ? $this->t('Flagged/Starred') : $this->t('Unflagged/Unstarred')),
-      '#wrapper_attributes' => ['class' => ['container-inline'], 'style' => 'margin: 0'],
-    ];
-
-    $build['locked'] = [
-      '#type' => 'item',
-      '#title' => $this->t('Lock'),
-      '#markup' => ($this->configuration['locked'] === NULL) ? '' : ($this->configuration['locked'] ? $this->t('Locked') : $this->t('Unlocked')),
-      '#wrapper_attributes' => ['class' => ['container-inline'], 'style' => 'margin: 0'],
-    ];
-
     $build['notes'] = [
       '#type' => 'item',
       '#title' => $this->t('Notes'),
@@ -344,21 +295,7 @@ class ActionWebformHandler extends WebformHandlerBase {
       '#markup' => $this->configuration['notes'] ? '<pre>' . htmlentities($this->configuration['notes']) . '</pre>' : '',
       '#wrapper_attributes' => ['class' => ['container-inline'], 'style' => 'margin: 0'],
     ];
-
-    $build['message'] = [
-      '#type' => 'item',
-      '#title' => $this->t('Message'),
-      '#markup' => $this->configuration['message'],
-      '#wrapper_attributes' => ['class' => ['container-inline'], 'style' => 'margin: 0'],
-    ];
-
-    $build['message_type'] = [
-      '#type' => 'item',
-      '#title' => $this->t('Message type'),
-      '#markup' => $this->configuration['message_type'],
-      '#wrapper_attributes' => ['class' => ['container-inline'], 'style' => 'margin: 0'],
-    ];
-
+    
     $this->messenger()->addWarning(\Drupal::service('renderer')->renderPlain($build), TRUE);
   }
 
