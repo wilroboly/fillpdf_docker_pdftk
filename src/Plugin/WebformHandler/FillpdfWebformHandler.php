@@ -29,10 +29,13 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
  *   id = "fillpdf_action",
  *   label = @Translation("FillPDF Action"),
  *   category = @Translation("Action"),
- *   description = @Translation("Produce a PDF document from values of a submission."),
- *   cardinality = \Drupal\webform\Plugin\WebformHandlerInterface::CARDINALITY_UNLIMITED,
- *   results = \Drupal\webform\Plugin\WebformHandlerInterface::RESULTS_PROCESSED,
- *   submission = \Drupal\webform\Plugin\WebformHandlerInterface::SUBMISSION_OPTIONAL,
+ *   description = @Translation("Produce a PDF document from values of a
+ *   submission."), cardinality =
+ *   \Drupal\webform\Plugin\WebformHandlerInterface::CARDINALITY_UNLIMITED,
+ *   results =
+ *   \Drupal\webform\Plugin\WebformHandlerInterface::RESULTS_PROCESSED,
+ *   submission =
+ *   \Drupal\webform\Plugin\WebformHandlerInterface::SUBMISSION_OPTIONAL,
  *   tokens = TRUE,
  * )
  */
@@ -108,12 +111,6 @@ class FillpdfWebformHandler extends WebformHandlerBase {
       'warning' => t('Warning'),
       'info' => t('Info'),
     ];
-    $settings['message'] = $settings['message'] ? WebformHtmlEditor::checkMarkup($settings['message']) : NULL;
-    $settings['message_type'] = $message_types[$settings['message_type']];
-
-    // Get data element keys.
-    $data = Yaml::decode($settings['data']) ?: [];
-    $settings['data'] = array_keys($data);
 
     return [
         '#settings' => $settings,
@@ -126,10 +123,7 @@ class FillpdfWebformHandler extends WebformHandlerBase {
   public function defaultConfiguration() {
     return [
       'states' => [WebformSubmissionInterface::STATE_COMPLETED],
-      'notes' => '',
-      'data' => '',
-      'message' => '',
-      'message_type' => 'status',
+      'fillpdf' => NULL,
       'debug' => FALSE,
     ];
   }
@@ -138,11 +132,17 @@ class FillpdfWebformHandler extends WebformHandlerBase {
    * {@inheritdoc}
    */
   public function buildConfigurationForm(array $form, FormStateInterface $form_state) {
-    //  @TODO: This gets us all the Entities of the type FillPDF_Form
-    //         Now we can build a list of choices and allow the user to select the one
-    //         which this action will act upon.
-//    $entity = \Drupal::entityTypeManager()->getStorage('fillpdf_form')->loadMultiple();
 
+    $fillpdf_options = ['' => ''];
+
+    $fillpdfs = \Drupal::entityTypeManager()->getStorage('fillpdf_form')->loadMultiple();
+    /**
+     * @var $element_key integer
+     * @var $element \Drupal\fillpdf\Entity\FillPdfForm
+     */
+    foreach ($fillpdfs as $element_key => $element) {
+      $fillpdf_options[$element_key] = $element->get('admin_title')->getString();
+    }
 
     $results_disabled = $this->getWebform()->getSetting('results_disabled');
 
@@ -166,57 +166,15 @@ class FillpdfWebformHandler extends WebformHandlerBase {
 
     $form['actions'] = [
       '#type' => 'fieldset',
-      '#title' => $this->t('Actions'),
+      '#title' => $this->t('Action'),
     ];
-//    $form['actions']['notes'] = [
-//      '#type' => 'webform_codemirror',
-//      '#mode' => 'text',
-//      '#title' => $this->t('Append the below text to notes (Plain text)'),
-//      '#default_value' => $this->configuration['notes'],
-//    ];
-    $form['actions']['message'] = [
-      '#type' => 'webform_html_editor',
-      '#title' => $this->t('Display message'),
-      '#default_value' => $this->configuration['message'],
-    ];
-    $form['actions']['message_type'] = [
+    $form['actions']['fillpdf'] = [
       '#type' => 'select',
-      '#title' => $this->t('Display message type'),
-      '#options' => [
-        'status' => t('Status'),
-        'error' => t('Error'),
-        'warning' => t('Warning'),
-        'info' => t('Info'),
-      ],
-      '#default_value' => $this->configuration['message_type'],
+      '#title' => $this->t('FillPDF Entity to use'),
+      '#empty_option' => $this->t('- None -'),
+      '#options' => $fillpdf_options,
+      '#default_value' => $this->configuration['fillpdf'],
     ];
-    $form['actions']['data'] = [
-      '#type' => 'webform_codemirror',
-      '#mode' => 'yaml',
-      '#title' => $this->t('Update the below submission data. (YAML)'),
-      '#default_value' => $this->configuration['data'],
-    ];
-
-    $elements_rows = [];
-    $elements = $this->getWebform()->getElementsInitializedFlattenedAndHasValue();
-    foreach ($elements as $element_key => $element) {
-      $elements_rows[] = [
-        $element_key,
-        (isset($element['#title']) ? $element['#title'] : ''),
-      ];
-    }
-    $form['actions']['elements'] = [
-      '#type' => 'details',
-      '#title' => $this->t('Available element keys'),
-      'element_keys' => [
-        '#type' => 'table',
-        '#header' => [$this->t('Element key'), $this->t('Element title')],
-        '#rows' => $elements_rows,
-      ],
-      '#collapsed' => TRUE,
-    ];
-    $form['actions']['token_tree_link'] = $this->tokenManager->buildTreeElement();
-
     // Development.
     $form['development'] = [
       '#type' => 'details',
@@ -268,7 +226,8 @@ class FillpdfWebformHandler extends WebformHandlerBase {
   }
 
   /**
-   * Acts on a saved webform submission before the insert or update hook is invoked.
+   * Acts on a saved webform submission before the insert or update hook is
+   * invoked.
    *
    * @param \Drupal\webform\WebformSubmissionInterface $webform_submission
    *   A webform submission.
@@ -292,30 +251,16 @@ class FillpdfWebformHandler extends WebformHandlerBase {
    *  - Get the FillPDF form object
    *  - Merge a FillPDF form object with the Webform Submission values
    *  - save the resulting PDF file to drive
-   *  - Update flags or handler config to identify the file location for email consumption
+   *  - Update flags or handler config to identify the file location for email
+   * consumption
    *
    * @param \Drupal\webform\WebformSubmissionInterface $webform_submission
    *   A webform submission.
    */
   protected function executeAction(WebformSubmissionInterface $webform_submission) {
-    // Set data -- This is really about modifying the data of the submission for
-    // whatever reason BEFORE we go the PDF file.
-    if ($this->configuration['data']) {
-      $data = Yaml::decode($this->configuration['data']);
-      $data = $this->tokenManager->replace($data, $webform_submission);
-      foreach ($data as $key => $value) {
-        $webform_submission->setElementData($key, $value);
-      }
-    }
 
     $id = $webform_submission->id();
-
-    //    @TODO: Get the FillPDF Object
-    //          To get the fillpdf object, we can do it in several ways, but likely
-    //          the best way to do it, is identify the FillPDF object wanted from
-    //          a table selection. Use a radio button to highlight the PDF wanted.
-    //    @TODO: Use a simple entity_id int field for now.
-    $fillpdf_fid = 22;
+    $fillpdf_fid = $this->configuration['fillpdf'];
 
     // Create Context
     $context = array (
@@ -332,13 +277,6 @@ class FillpdfWebformHandler extends WebformHandlerBase {
       'flatten' => true,
     );
 
-    // Append notes.
-//    if ($this->configuration['notes']) {
-//      $notes = rtrim($webform_submission->getNotes());
-//      $notes .= ($notes ? PHP_EOL . PHP_EOL : '') . $this->tokenManager->replace($this->configuration['notes'], $webform_submission);
-//      $webform_submission->setNotes($notes);
-//    }
-
 //    $bundles = \Drupal::service('entity_type.bundle.info')->getBundleInfo('fillpdf_form');
 
     $config = $this->configFactory->get('fillpdf.settings');
@@ -352,13 +290,13 @@ class FillpdfWebformHandler extends WebformHandlerBase {
     // convert to FillPdfFormInterface object
     // since we have the object id, we can do a load on that object.
 
-    /** @var FillPdfFormInterface $fillpdf_form */
-    $fillpdf_form = FillPdfForm::load($context['fid']);
-
-    if (!$fillpdf_form) {
-      // @TODO: Replace this with a watchdog message, as we do not want this to
-      //        show up for USERS in the browser.
-      drupal_set_message($this->t('FillPDF Form (fid) not found in the system. Please check the value in your FillPDF Link.'), 'error');
+    try {
+      /** @var FillPdfFormInterface $fillpdf_form */
+      $fillpdf_form = FillPdfForm::load($context['fid']);
+    }
+    catch (RequestException $e) {
+      watchdog_exception('fillpdf_docker', $e, $this->t('FillPDF Form (fid) not found in the system. Please check the value in your FillPDF Link.'));
+      return NULL;
     }
 
     $fields = $this->entityHelper->getFormFields($fillpdf_form);
@@ -427,8 +365,6 @@ class FillpdfWebformHandler extends WebformHandlerBase {
     }
 
     $title_pattern = $fillpdf_form->title->value;
-    // Generate the filename of downloaded PDF from title of the PDF set in
-    // admin/structure/fillpdf/%fid
     $context['filename'] = $this->buildFilename($title_pattern, $webform_submission);
 
     $populated_pdf = $backend->populateWithFieldData($fillpdf_form, $field_mapping, $context);
@@ -437,23 +373,11 @@ class FillpdfWebformHandler extends WebformHandlerBase {
 
     $destination = file_build_uri('webform/'. $webform->id());
     file_prepare_directory($destination, FILE_CREATE_DIRECTORY);
-    // We're going to create a temporary file and save it. We're then going to add
-    // this file to a file element as an ID. This will permit the webform to
-    // associate the file to a document and use it from one handler to the next.
 
     /** @var \Drupal\file\Entity\File $file */
     $file = file_save_data($populated_pdf, $destination  . '/' . $context['filename'], FILE_EXISTS_REPLACE);
     $file->setPermanent();
     $file->save();
-
-    // Display message.
-    if ($this->configuration['message']) {
-      $message = WebformHtmlEditor::checkMarkup(
-        $this->tokenManager->replace($this->configuration['message'], $webform_submission)
-      );
-      $message_type = $this->configuration['message_type'];
-      $this->messenger()->addMessage(\Drupal::service('renderer')->renderPlain($message), $message_type);
-    }
 
     $data = $webform_submission->getData();
     $data['pdf'] = $file->id();
@@ -488,34 +412,6 @@ class FillpdfWebformHandler extends WebformHandlerBase {
       '#type' => 'item',
       '#title' => $this->t('State'),
       '#markup' => $state,
-      '#wrapper_attributes' => ['class' => ['container-inline'], 'style' => 'margin: 0'],
-    ];
-
-//    $build['notes'] = [
-//      '#type' => 'item',
-//      '#title' => $this->t('Notes'),
-//      '#markup' => $this->configuration['notes'],
-//      '#wrapper_attributes' => ['class' => ['container-inline'], 'style' => 'margin: 0'],
-//    ];
-
-    $build['data'] = [
-      '#type' => 'item',
-      '#title' => $this->t('Data'),
-      '#markup' => $this->configuration['notes'] ? '<pre>' . htmlentities($this->configuration['notes']) . '</pre>' : '',
-      '#wrapper_attributes' => ['class' => ['container-inline'], 'style' => 'margin: 0'],
-    ];
-
-    $build['message'] = [
-      '#type' => 'item',
-      '#title' => $this->t('Message'),
-      '#markup' => $this->configuration['message'],
-      '#wrapper_attributes' => ['class' => ['container-inline'], 'style' => 'margin: 0'],
-    ];
-
-    $build['message_type'] = [
-      '#type' => 'item',
-      '#title' => $this->t('Message type'),
-      '#markup' => $this->configuration['message_type'],
       '#wrapper_attributes' => ['class' => ['container-inline'], 'style' => 'margin: 0'],
     ];
 
