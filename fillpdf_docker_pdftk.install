@@ -14,22 +14,3 @@ function fillpdf_docker_pdftk_install() {
   // runs after fillpdf methods and functions.
   module_set_weight('fillpdf_docker_pdftk', 11);
 }
-
-/**
- * Add the data field for FillPDF Form entities
- */
-function fillpdf_docker_pdftk_update_8501() {
-//  @TODO: Might look into using a entity field, but at this time
-//    we're going to follow this: https://www.palantir.net/blog/d8ftw-storing-data-drupal-8
-//    using Config Entities.
-//  $storage_definition = BaseFieldDefinition::create('string_long')
-//    ->setLabel(t('Serialized data'))
-//    ->setDescription(t('Any data and settings to be stored with an entity using serialized JSON object'));
-//
-//  \Drupal::entityDefinitionUpdateManager()
-//    ->installFieldStorageDefinition('data', 'fillpdf_form', 'fillpdf_form', $storage_definition);
-//
-//  \Drupal::database()->update('fillpdf_forms')
-//    ->fields(['data' => NULL])
-//    ->execute();
-}
