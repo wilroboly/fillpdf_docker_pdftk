@@ -92,11 +92,9 @@ class DeletionWebformHandler extends WebformHandlerBase {
     return [
       'states' => [WebformSubmissionInterface::STATE_COMPLETED],
       'notes' => '',
-      'sticky' => NULL,
-      'locked' => NULL,
+      'delete_submission' => NULL,
+      'managed_files' => NULL,
       'data' => '',
-      'message' => '',
-      'message_type' => 'status',
       'debug' => FALSE,
     ];
   }
@@ -125,11 +123,31 @@ class DeletionWebformHandler extends WebformHandlerBase {
       '#access' => $results_disabled ? FALSE : TRUE,
       '#default_value' => $results_disabled ? [WebformSubmissionInterface::STATE_COMPLETED] : $this->configuration['states'],
     ];
+    $form['trigger']['markup'] = [
+      '#markup' => $this->t('<strong>NOTE:</strong> For whatever reason, we\'ve identified that some file element fields in a webform, when the submission is deleted, may cause artifacts to remain. [<em>think a file entity which has no size or actual file, but is identified in the DB as a placeholder for something</em>] Obviously, this is not a desired result of the process. With this Deletion Handler, we attempt to present a work around. If you check the \'<strong>delete</strong>\' option above, upon a submission being deleted, we will run through all file elements and ensure they all references to the files and their corresponding files on the drive are completely removed from the system.'),
+    ];
 
     $form['actions'] = [
       '#type' => 'fieldset',
       '#title' => $this->t('Actions'),
     ];
+    $form['actions']['delete_submission'] = [
+      '#type' => 'checkbox',
+      '#title' => $this->t('Delete the submission'),
+      '#description' => $this->t('If checked, the deletion response will be displayed onscreen to all users. This particular action can only be performed on a submission which has the state COMPLETED and is being submitted. UPDATED submissions cannot be deleted POST the COMPLETED state. It would negate the purpose of an UPDATE.'),
+      '#return_value' => TRUE,
+      '#access' => $results_disabled ? FALSE : TRUE,
+      '#default_value' => $results_disabled ? [WebformSubmissionInterface::STATE_COMPLETED] : $this->configuration['delete_submission'],
+    ];
+
+    $managed_file_elements = [];
+    $elements = $this->getWebform()->getElementsInitializedFlattenedAndHasValue();
+    foreach ($elements as $element_key => $element) {
+      if (substr($element['#type'], -5, 5) == '_file') {
+        $managed_file_elements[$element_key] = (isset($element['#title']) ? $element['#title'] : '');
+      }
+    }
+
     $form['actions']['notes'] = [
       '#type' => 'webform_codemirror',
       '#mode' => 'text',
@@ -141,6 +159,15 @@ class DeletionWebformHandler extends WebformHandlerBase {
       '#mode' => 'yaml',
       '#title' => $this->t('Update the below submission data. (YAML)'),
       '#default_value' => $this->configuration['data'],
+      '#description' => $this->t('Though this is similar to an ACTION handler, it does simply categorizes your actions a bit more. You could just use the ACTION handler to change or unset values of the submission or webform, but this DELETE handler makes the intention clear.'),
+    ];
+    $form['actions']['managed_files'] = [
+      '#type' => 'checkboxes',
+      '#title' => $this->t('Delete the files associated to the following elements:'),
+      '#options' => $managed_file_elements,
+      '#access' => $results_disabled ? FALSE : TRUE,
+      '#default_value' => $results_disabled ? [WebformSubmissionInterface::STATE_COMPLETED] : $this->configuration['managed_files'],
+      '#description' => $this->t('This is going to be pretty cool..'),
     ];
 
     $elements_rows = [];
@@ -159,6 +186,7 @@ class DeletionWebformHandler extends WebformHandlerBase {
         '#header' => [$this->t('Element key'), $this->t('Element title')],
         '#rows' => $elements_rows,
       ],
+      '#collapsed' => TRUE,
     ];
     $form['actions']['token_tree_link'] = $this->tokenManager->buildTreeElement();
 
@@ -170,7 +198,7 @@ class DeletionWebformHandler extends WebformHandlerBase {
     $form['development']['debug'] = [
       '#type' => 'checkbox',
       '#title' => $this->t('Enable debugging'),
-      '#description' => $this->t('If checked, trigger actions will be displayed onscreen to all users.'),
+      '#description' => $this->t('If checked, trigger delete actions will be displayed onscreen to all users.'),
       '#return_value' => TRUE,
       '#default_value' => $this->configuration['debug'],
     ];
