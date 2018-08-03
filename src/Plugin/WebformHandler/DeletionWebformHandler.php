@@ -261,6 +261,15 @@ class DeletionWebformHandler extends WebformHandlerBase {
    *   A webform submission.
    */
   protected function executeAction(WebformSubmissionInterface $webform_submission) {
+     if ($this->configuration['managed_files']) {
+       $managed_files = $this->configuration['managed_files'];
+       foreach ($managed_files as $key => $value) {
+         /** @var FileInterface $file */
+         $file = File::load($webform_submission->getElementData($key));
+         $file->delete();
+         $webform_submission->setElementData($key, '');
+       }
+     }
 
     // Append notes.
     if ($this->configuration['notes']) {
