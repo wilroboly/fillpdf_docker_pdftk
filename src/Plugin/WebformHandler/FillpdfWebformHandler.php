@@ -9,7 +9,6 @@ use Drupal\Core\Serialization\Yaml;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\file\Entity\File;
 use Drupal\webform\Entity\Webform;
-use Drupal\webform\Element\WebformHtmlEditor;
 use Drupal\webform\Plugin\WebformHandlerBase;
 use Drupal\webform\WebformSubmissionConditionsValidatorInterface;
 use Drupal\webform\WebformSubmissionInterface;
@@ -29,8 +28,8 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
  *   id = "fillpdf_action",
  *   label = @Translation("FillPDF Action"),
  *   category = @Translation("Action"),
- *   description = @Translation("Produce a PDF document from values of a
- *   submission."), cardinality =
+ *   description = @Translation("Produce a PDF document from values of a submission."),
+ *   cardinality =
  *   \Drupal\webform\Plugin\WebformHandlerInterface::CARDINALITY_UNLIMITED,
  *   results =
  *   \Drupal\webform\Plugin\WebformHandlerInterface::RESULTS_PROCESSED,
@@ -123,7 +122,7 @@ class FillpdfWebformHandler extends WebformHandlerBase {
   public function defaultConfiguration() {
     return [
       'states' => [WebformSubmissionInterface::STATE_COMPLETED],
-      'fillpdf' => NULL,
+      'fillpdf' => '',
       'debug' => FALSE,
     ];
   }
@@ -173,7 +172,8 @@ class FillpdfWebformHandler extends WebformHandlerBase {
       '#title' => $this->t('FillPDF Entity to use'),
       '#empty_option' => $this->t('- None -'),
       '#options' => $fillpdf_options,
-      '#default_value' => $this->configuration['fillpdf'],
+      '#default_value' => $this->t($this->configuration['fillpdf']),
+      '#translatable' => true,
     ];
     // Development.
     $form['development'] = [
